@@ -1,41 +1,69 @@
 package screen
 
-import scala.swing._
+import scalafx.Includes._
+import scalafx.application.JFXApp3
+import scalafx.application.JFXApp3.PrimaryStage
+import scalafx.scene.{Node, Scene}
+import scalafx.scene.control.Button
+import scalafx.scene.layout.{StackPane, VBox}
+import scalafx.scene.paint.Color._
+import scalafx.scene.shape._
 
-object ScreenDrawer extends SimpleSwingApplication {
-  var drawTargetObjects: Seq[DrawableObject] = Seq.empty
+import scala.collection.immutable.ListMap
+import scala.collection.mutable.ListBuffer
 
-  def top: MainFrame = new MainFrame {
-    title = "Window Title"
-    minimumSize = new Dimension(300, 200)
-  }
+object ScreenDrawer extends JFXApp3 {
+  private var drawTargetObjectNodes: ListMap[Int, ListBuffer[Node]] =
+    ListMap.empty
 
-  def addDrawObject(target: DrawableObject): Unit = {
-    drawTargetObjects = drawTargetObjects :+ target
-  }
+  override def start(): Unit = {
+    debug_addButton()
 
-  def addDrawObjects(target: Seq[DrawableObject]): Unit = {
-    drawTargetObjects = drawTargetObjects ++ target
-  }
-
-  def drawAll(): Unit = {
-    for (drawTarget <- drawTargetObjects) {
-      drawTarget.draw()
+    stage = new PrimaryStage {
+      title.value = "Hello Stage"
+      width = 600
+      height = 480
+      scene = draw()
     }
   }
 
-  def debug_addDummyData(): Unit = {
-    val newSeq: Seq[DrawableObject] = Seq(
-      new TestA(),
-      new TestA(),
-      new TestA()
+  def addDrawTargetObject(objectNode: Node, priority: Int = 0): Unit = {
+    drawTargetObjectNodes.get(priority) match {
+      case Some(nodeList) =>
+        nodeList += objectNode
+      case None => {
+        drawTargetObjectNodes =
+          drawTargetObjectNodes.updated(priority, ListBuffer.empty += objectNode)
+      }
+    }
+
+    drawTargetObjectNodes = ListMap(
+      drawTargetObjectNodes.toSeq.sortBy(_._1): _*
     )
-    addDrawObjects(newSeq)
   }
 
-  debug_addDummyData()
+  def draw(): Scene = {
+    new Scene {
+      val vBox = new VBox
 
-  drawAll()
+      drawTargetObjectNodes.foreach {
+        _._2.foreach {
+          vBox.children.add(_)
+        }
+      }
+
+      content = vBox
+    }
+  }
+
+  def debug_addButton(): Unit = {
+    val button1 = new Button("Button 1")
+    val button2 = new Button("Button 2")
+
+    addDrawTargetObject(button1)
+    addDrawTargetObject(button2)
+  }
+
 }
 
 class TestA extends DrawableObject {
